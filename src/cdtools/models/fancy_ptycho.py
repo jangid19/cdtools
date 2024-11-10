@@ -820,7 +820,10 @@ class FancyPtycho(CDIModel):
              fig=fig,
              basis=self.obj_basis,
              units=self.units,
-             cmap='cividis'),
+             cmap='twilight'
+             #cmap='magma',
+             #cmap='cividis'
+             ),
          lambda self: self.exponentiate_obj),
         ('Imaginary Part of T',
          lambda self, fig: p.plot_imag(

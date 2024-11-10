@@ -1,7 +1,9 @@
 import cdtools
 import torch as t
 
-filename = 'example_data/AuBalls_700ms_30nmStep_3_6SS_filter.cxi'
+path_results = '/home/rjangid/GitHub/cdtools/examples/'
+
+filename = path_results+'example_data/AuBalls_700ms_30nmStep_3_6SS_filter.cxi'
 dataset = cdtools.datasets.Ptycho2DDataset.from_cxi(filename)
 
 pad = 10
@@ -51,4 +53,4 @@ for label, dataset in zip(labels, datasets):
         
     model.tidy_probes()
 
-    model.save_to_h5(f'example_reconstructions/gold_balls_{label}.h5', dataset)
+    model.save_to_h5(path_results+f'example_reconstructions/gold_balls_{label}.h5', dataset)

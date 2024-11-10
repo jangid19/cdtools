@@ -3,9 +3,9 @@ import pickle
 from matplotlib import pyplot as plt
 
 # First, we load an example dataset from a .cxi file
-ss_filename = 'example_data/Optical_Data_ss.cxi'
+ss_filename = '/home/rjangid/GitHub/cdtools/examples/example_data/Optical_Data_ss.cxi'
 
-with open('example_data/Optical_ptycho_incoherent.pickle', 'rb') as f:
+with open('/home/rjangid/GitHub/cdtools/examples/example_data/Optical_ptycho_incoherent.pickle', 'rb') as f:
     ptycho_results = pickle.load(f)
 
 probe = ptycho_results['probe']
@@ -43,5 +43,5 @@ results = model.save_results()
 
 # Finally, we plot the results
 model.inspect(dataset)
-model.compare(dataset)
+# model.compare(dataset)
 plt.show()

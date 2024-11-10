@@ -3,7 +3,7 @@ from tutorial_simple_ptycho import SimplePtycho
 from h5py import File
 from matplotlib import pyplot as plt
 
-filename = 'example_data/lab_ptycho_data.cxi'
+filename = '/home/rjangid/GitHub/cdtools/examples/example_data/lab_ptycho_data.cxi'
 with File(filename, 'r') as f:
     dataset = BasicPtychoDataset.from_cxi(f)    
 
@@ -14,7 +14,7 @@ model = SimplePtycho.from_dataset(dataset)
 model.to(device='cuda')
 dataset.get_as(device='cuda')
 
-for loss in model.Adam_optimize(10, dataset):
+for loss in model.Adam_optimize(100, dataset):
     model.inspect(dataset)
     print(model.report())
 

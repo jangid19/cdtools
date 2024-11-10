@@ -2,14 +2,14 @@ import cdtools
 from cdtools.tools import plotting as p
 from matplotlib import pyplot as plt
 import numpy as np
-
+path_results = '/home/rjangid/GitHub/cdtools/examples/'
 # We load all three reconstructions
 half_1 = cdtools.tools.data.h5_to_nested_dict(
-    f'example_reconstructions/gold_balls_half_1.h5')
+    path_results+'example_reconstructions/gold_balls_half_1.h5')
 half_2 = cdtools.tools.data.h5_to_nested_dict(
-    f'example_reconstructions/gold_balls_half_2.h5')
+    path_results+'example_reconstructions/gold_balls_half_2.h5')
 full = cdtools.tools.data.h5_to_nested_dict(
-    f'example_reconstructions/gold_balls_full.h5')
+    path_results+'example_reconstructions/gold_balls_full.h5')
 
 # This defines the region of recovered object to use for the analysis.
 pad = 260
