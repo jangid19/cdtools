@@ -831,20 +831,60 @@ def nested_dict_to_h5(h5_file, d):
     return
 
 
+# def h5_to_nested_dict(h5_file):
+#     """saves a nested dictionary to an h5 file object
+
+#     Parameters
+#     ----------
+#     h5_file : h5py.File
+#         A file object, or path to a file, to load from
+#     d : dict
+#         A mapping whose keys are all strings and whose values are only numpy arrays, pytorch tensors, scalars, python strings, or other mappings meeting the same conditions
+#     """
+    
+#     # If a bare string is passed
+#     if isinstance(h5_file, str) or isinstance(h5_file, pathlib.Path):
+#         with h5py.File(h5_file,'r') as f:
+#             return h5_to_nested_dict(f)
+
+#     d = {}
+#     for key in h5_file.keys():
+#         value = h5_file[key]
+#         if isinstance(value, h5py.Dataset):
+#             arr = value[()]
+#             if arr.dtype == object:
+#                 d[key] = arr.ravel()[0].decode('utf-8')
+#             elif arr.ndim == 0:
+#                 # TODO is this needed with arr = value[()]?
+#                 d[key] = arr.ravel()[0] 
+#             else:
+#                 d[key] = arr
+            
+#         elif isinstance(value, h5py.Group):
+#             sub_d = h5_to_nested_dict(value)
+#             d[key] = sub_d            
+#         else:
+#             raise ValueError(f'{value} could not be interpreted sensibly')
+
+#     return d
+
 def h5_to_nested_dict(h5_file):
-    """saves a nested dictionary to an h5 file object
+    """Converts an h5 file object into a nested dictionary.
 
     Parameters
     ----------
-    h5_file : h5py.File
-        A file object, or path to a file, to load from
-    d : dict
-        A mapping whose keys are all strings and whose values are only numpy arrays, pytorch tensors, scalars, python strings, or other mappings meeting the same conditions
+    h5_file : h5py.File or str
+        A file object, or path to a file, to load from.
+    
+    Returns
+    -------
+    dict
+        A nested dictionary representation of the HDF5 file.
     """
     
-    # If a bare string is passed
+    # If a file path (string or Path object) is provided, open the file
     if isinstance(h5_file, str) or isinstance(h5_file, pathlib.Path):
-        with h5py.File(h5_file,'r') as f:
+        with h5py.File(h5_file, 'r') as f:
             return h5_to_nested_dict(f)
 
     d = {}
@@ -852,16 +892,19 @@ def h5_to_nested_dict(h5_file):
         value = h5_file[key]
         if isinstance(value, h5py.Dataset):
             arr = value[()]
-            if arr.dtype == object:
+            
+            # Check if the data is a byte string (not an array)
+            if isinstance(arr, bytes):
+                d[key] = arr.decode('utf-8')  # Decode the bytes to a string
+            elif arr.dtype == object:
                 d[key] = arr.ravel()[0].decode('utf-8')
             elif arr.ndim == 0:
-                # TODO is this needed with arr = value[()]?
-                d[key] = arr.ravel()[0] 
+                d[key] = arr.ravel()[0]  # Extract scalar values
             else:
-                d[key] = arr
+                d[key] = arr  # Store as array
             
         elif isinstance(value, h5py.Group):
-            sub_d = h5_to_nested_dict(value)
+            sub_d = h5_to_nested_dict(value)  # Recursively process groups
             d[key] = sub_d            
         else:
             raise ValueError(f'{value} could not be interpreted sensibly')

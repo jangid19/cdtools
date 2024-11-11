@@ -6,9 +6,10 @@ import numpy as np
 
 probe_guess_file = '/home/rjangid/GitHub/cdtools_results/NIST17_results/Scan_196486_results.h5'
 
-scan = 196499
+scan = 196486
 
-filename = '/home/rjangid/20240209_NNO_Wedged_Levitan/Processed_CXIs/%s_p.cxi' % str(scan)
+filename = '/home/rjangid/20240209_NNO_Wedged_Levitan/Processed_CXIs/%s_p.cxi' % (str(scan)+'+'+str(196490))
+# filename = '/home/rjangid/20240209_NNO_Wedged_Levitan/Processed_CXIs/%s_p.cxi' % str(scan)
 results_dir = '/home/rjangid/GitHub/cdtools_results/NIST17_results/'
 
 dataset = cdtools.datasets.Ptycho2DDataset.from_cxi(filename)
@@ -20,11 +21,11 @@ model = cdtools.models.FancyPtycho.from_dataset(
     # oversampling=2,
     translation_scale=0.25,
     n_modes=6, # Use 3 incoherently mixing probe modes
-    propagation_distance=30e-6,
+    propagation_distance=30*10**-6,
 )
 
-probe = cdtools.tools.data.h5_to_nested_dict(probe_guess_file)
-model.probe.data = cdtools.tools.initializers.SHARP_style_probe(t.as_tensor(np.array(probe['probe'])) / model.probe_norm, propagation_distance=130e-6)
+# probe = cdtools.tools.data.h5_to_nested_dict(probe_guess_file)
+# model.probe.data = cdtools.tools.initializers.SHARP_style_probe(t.as_tensor(np.array(probe['probe'])) / model.probe_norm, propagation_distance=130e-6)
 # model.probe.data = probe / model.probe_norm
 
 # probe = cdtools.tools.initializers.SHARP_style_probe(dataset)
