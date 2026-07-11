@@ -635,7 +635,9 @@ class FancyPtycho(CDIModel):
             prs, obj, pix_trans,
             shift_probe=True,
             multiple_modes=True,
-            probe_support=self.probe_support)
+            probe_support=self.probe_support,
+            shift_back_ew=self.near_field, # only shift back for near-field
+        )
         
         return exit_waves
     
