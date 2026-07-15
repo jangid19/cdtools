@@ -389,7 +389,7 @@ def ptycho_2D_linear(probe, obj, translations, shift_probe=True):
         return t.stack(exit_waves)
 
 
-def ptycho_2D_sinc(probe, obj, translations, shift_probe=True, padding=10, multiple_modes=True, probe_support=None):
+def ptycho_2D_sinc(probe, obj, translations, shift_probe=True, padding=10, multiple_modes=True, probe_support=None, shift_back_ew=False):
     """Returns a stack of exit waves accounting for subpixel shifts
 
     This function returns a collection of exit waves, with the first
@@ -409,6 +409,11 @@ def ptycho_2D_sinc(probe, obj, translations, shift_probe=True, padding=10, multi
     modes to be broadcast all translation indices. If any additional dimensions
     closer to the start exist, they will be assumed to be translation indices
 
+    If shift_back_ew is set to False (the default), the output exit wave will
+    be shifted within it's field of view. This is not a problem for far-field
+    ptychography, but it is a problem for near-field ptychography. Therefore,
+    when used for near-field ptychography, shift_back_ew=True should be used.
+
     Parameters
     ----------
     probe : torch.Tensor
@@ -421,6 +426,8 @@ def ptycho_2D_sinc(probe, obj, translations, shift_probe=True, padding=10, multi
         Default True, Whether to subpixel shift the probe or object
     multuple_modes : bool
         Default False, whether to assume the probe contains multiple modes
+    shift_back_ew : bool
+        Default False, whether to subpixel-shift the exit wave back after calculating
 
     Returns
     -------
@@ -473,7 +480,19 @@ def ptycho_2D_sinc(probe, obj, translations, shift_probe=True, padding=10, multi
         else:
             # This will only work if the 
             output = shifted_probe * selections
-        
+
+        if shift_back_ew:
+            fft_output = t.fft.fftshift(t.fft.fft2(output),dim=(-1,-2))
+            if multiple_modes: # Multi-mode probe
+                shifted_fft_output = fft_output * \
+                    t.conj(phase_masks[...,None,:,:])
+            else:
+                shifted_fft_output = fft_output * t.conj(phase_masks)
+
+            output = t.fft.ifft2(t.fft.ifftshift(shifted_fft_output,
+                                                 dim=(-1,-2)))
+
+
     else:
         raise NotImplementedError('Object shift not yet implemented')
     
