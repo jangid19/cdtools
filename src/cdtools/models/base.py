@@ -722,8 +722,29 @@ class CDIModel(t.nn.Module):
             # older matplotlib
             interactive_bk = matplotlib.rcsetup.interactive_bk
         return backend in [b.lower() for b in interactive_bk]
-    
 
+
+    @staticmethod
+    def _get_canvas_callback_ids(canvas):
+        """Returns the set of all event-callback ids registered on a canvas.
+
+        This is used because there were previously issues with memory leaks
+        due to callbacks being registered in subfigures when using
+        panel_plot_mode, which closed over large tensors. Using this function,
+        we can determine what callbacks are registered with each call to
+        inspect() and then remove them before the next call.
+        """
+        cids = set()
+        registry = getattr(canvas, 'callbacks', None)
+        if registry is None:
+            return cids
+        # CallbackRegistry.callbacks maps each signal name to a {cid: proxy}
+        # dict; the cids are unique integers across the whole registry.
+        for cid_map in getattr(registry, 'callbacks', {}).values():
+            cids.update(cid_map.keys())
+        return cids
+
+    
     def _inspect_individual_figures(
             self,
             plot_list,
@@ -801,7 +822,7 @@ class CDIModel(t.nn.Module):
                 raise
             except Exception:
                 pass
-
+            
             rendered.append(fig)
             if self._is_backend_interactive():
                 plt.draw()
@@ -868,11 +889,17 @@ class CDIModel(t.nn.Module):
                 with plt.rc_context({'figure.raise_window': False}):
                     fig = plt.figure(panel_def['title'], figsize=figsize)
 
-            for subfig in fig.subfigs:
-                if hasattr(subfig, '_sliders'):
-                    for slider in subfig._sliders:
-                        slider.disconnect_events()
+            # This cleanup of callback functions is key to prevent memory leaks.
+            # This attribute, _cdtools_render_cids, is automatically calculated
+            # after each call to inspect()
+            for cid in getattr(fig, '_cdtools_render_cids', ()):
+                fig.canvas.mpl_disconnect(cid)
+            
             fig.clear()
+
+            # We get a list of all the base callbacks, which are for things
+            # like the default matplotlib navigation buttons (backend-dependent)
+            cids_before_render = self._get_canvas_callback_ids(fig.canvas)
 
             gs = fig.add_gridspec(
                 nrows, ncols,
@@ -910,6 +937,12 @@ class CDIModel(t.nn.Module):
                     raise
                 except Exception:
                     raise
+
+            # Here we store all the newly added callbacks so we can disconnect
+            # them later.
+            fig._cdtools_render_cids = (
+                self._get_canvas_callback_ids(fig.canvas) - cids_before_render
+            )
 
             rendered.append(fig)
             
