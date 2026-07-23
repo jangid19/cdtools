@@ -4,7 +4,7 @@ This is a short description how to build custom documentation with `sphinx` base
 
 This requires a cloned version of `cdtools` from GitHub. See the installation guide for more information: 
 
-https://cdtools-developers.github.io/cdtools/installation.html#option-2-installation-from-source
+https://cdtools.readthedocs.io/en/stable/installation.html#option-2-installation-from-source
 
 
 ## Installation of Dependencies

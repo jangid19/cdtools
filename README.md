@@ -26,7 +26,7 @@ model.compare(dataset) # See how the simulated and measured patterns compare
 plt.show()
 ```
 
-Further documentation is found [here](https://cdtools-developers.github.io/cdtools/).
+Further documentation is found [here](https://cdtools.readthedocs.io).
 
 Instructions for building custom documentation based on a specific version or commit can be found [here](https://github.com/cdtools-developers/cdtools/blob/master/docs/build_custom_docs.md).
 
