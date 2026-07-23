@@ -52,16 +52,21 @@ class AdamReconstructor(Reconstructor):
                  subset: List[int] = None):
 
         # Define the optimizer for use in this subclass
-        optimizer = t.optim.Adam(model.parameters())
+        param_groups = []
+        for name, param in model.named_parameters():
+            param_groups.append({'params':[param], 'name':name})
+
+        optimizer = t.optim.Adam(param_groups)
 
         super().__init__(model, dataset, optimizer, subset=subset)
 
 
 
     def adjust_optimizer(self,
-                         lr: int = 0.005,
+                         lr: int | dict = 0.005,
                          betas: Tuple[float] = (0.9, 0.999),
-                         amsgrad: bool = False):
+                         amsgrad: bool = False,
+                         default_lr : int = 0.005):
         """
         Change hyperparameters for the utilized optimizer.
 
@@ -77,16 +82,25 @@ class AdamReconstructor(Reconstructor):
             Optional, whether to use the AMSGrad variant of this algorithm.
         """
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
             param_group['betas'] = betas
             param_group['amsgrad'] = amsgrad
+            param_name = param_group['name']
+            if isinstance(lr, dict):
+                if param_name not in lr:
+                    param_group['lr'] = default_lr
+                else:
+                    param_group['lr'] = lr[param_name]
+            else:
+                param_group['lr'] = lr
 
+            print(f"Found paramter {param_name}, learning rate : {param_group['lr']}")
         
     def optimize(self,
                  iterations: int,
                  batch_size: int = 15,
-                 lr: float = 0.005,
+                 lr: int | dict = 0.005,
                  betas: Tuple[float] = (0.9, 0.999),
+                 default_lr : int = 0.005,
                  custom_data_loader: t.utils.data.DataLoader = None,
                  schedule: bool = False,
                  amsgrad: bool = False,
@@ -155,7 +169,8 @@ class AdamReconstructor(Reconstructor):
         # hyperparameters need to be set up with self.adjust_optimizer
         self.adjust_optimizer(lr=lr,
                               betas=betas,
-                              amsgrad=amsgrad)
+                              amsgrad=amsgrad,
+                              default_lr = default_lr)
 
         # Set up the scheduler
         if schedule:
