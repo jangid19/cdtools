@@ -28,8 +28,6 @@ plt.show()
 
 Further documentation is found [here](https://cdtools.readthedocs.io).
 
-Instructions for building custom documentation based on a specific version or commit can be found [here](https://github.com/cdtools-developers/cdtools/blob/master/docs/build_custom_docs.md).
-
 # Installation
 
 CDTools can be installed in several ways depending on your needs. For most users, installation from pypi is recommended. For developers or those who want the latest features, installation from source is available.
