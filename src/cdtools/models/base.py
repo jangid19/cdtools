@@ -544,6 +544,7 @@ class CDIModel(t.nn.Module):
                      dataset: CDataset,
                      batch_size: int = None,
                      lr: float = 2e-7,
+                     lr_factors : dict = {},
                      momentum: float = 0,
                      dampening: float = 0,
                      weight_decay: float = 0,
@@ -569,6 +570,8 @@ class CDIModel(t.nn.Module):
             Optional, the size of the minibatches to use.
         lr : float
             Optional, the learning rate to use.
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
         momentum : float
             Optional, the length of the history to use.
         dampening : float
@@ -595,6 +598,7 @@ class CDIModel(t.nn.Module):
             model=self, 
             dataset=dataset, 
             subset=subset,
+            lr_factors=lr_factors,
         )
 
         # Run some reconstructions

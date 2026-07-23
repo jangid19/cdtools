@@ -34,7 +34,7 @@ recon = cdtools.reconstructors.AdamReconstructor(
     model, dataset, lr_factors=lr_factors)
 
 # For example, background will get a lr of 0.03 * 0.3 (lr * lr_factor).
-for loss in recon.optimize(50, lr=0.03, batch_size=10, lr_factors=lr_factors, verbose=True):
+for loss in recon.optimize(50, lr=0.03, batch_size=10):
     print(model.report())
     model.inspect(min_interval=10)
 

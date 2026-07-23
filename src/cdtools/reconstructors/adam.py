@@ -34,14 +34,15 @@ class AdamReconstructor(Reconstructor):
         The dataset to reconstruct against.
     subset : list(int) or int
         Optional, a pattern index or list of pattern indices to use.
-    schedule : bool
-        Optional, create a learning rate scheduler
-        (torch.optim.lr_scheduler._LRScheduler).
+    lr_factors : dict
+        Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
 
     Important attributes:
     - **model** -- Always points to the core model used.
     - **optimizer** -- This class by default uses `torch.optim.Adam` to perform
         optimizations.
+    - **lr_factors** -- A map from optimizer parameters to learning rate
+        factors.
     - **scheduler** -- A `torch.optim.lr_scheduler` that is defined during the
         `optimize` method.
     - **data_loader** -- A torch.utils.data.DataLoader that is defined by
@@ -90,6 +91,7 @@ class AdamReconstructor(Reconstructor):
                 str(unused_lr_factors),
                 stacklevel=3,
             )
+            
 
     def print_lrs(self):
         """Prints the current per-parameter learning rates.
@@ -101,13 +103,13 @@ class AdamReconstructor(Reconstructor):
                 f"{param_group['lr']}."
             )
 
+            
     def adjust_optimizer(
             self,
             lr: int = 0.005,
             betas: Tuple[float] = (0.9, 0.999),
             amsgrad: bool = False,
             lr_factors: dict = None,
-            verbose: bool = False,
     ):
         """
         Change hyperparameters for the utilized optimizer.
@@ -124,8 +126,6 @@ class AdamReconstructor(Reconstructor):
             Optional, whether to use the AMSGrad variant of this algorithm.
         lr_factors : dict
             Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
-        verbose : bool
-            Default False, whether to print out setup information after adjustment.
         """
 
         # Update the learning rate factors if explicitly given. Otherwise,
@@ -139,16 +139,11 @@ class AdamReconstructor(Reconstructor):
             param_group['betas'] = betas
             param_group['amsgrad'] = amsgrad
             param_name = param_group['name']
-            if isinstance(self.lr_factors, dict):
-                if param_name not in self.lr_factors:
-                    param_group['lr'] = lr
-                else:
-                    param_group['lr'] = lr * self.lr_factors[param_name]
+            if isinstance(self.lr_factors, dict) and \
+               param_name in self.lr_factors:
+                param_group['lr'] = lr * self.lr_factors[param_name]
             else:
                 param_group['lr'] = lr
-
-        if verbose:
-            self.print_lrs()
 
                 
     def optimize(
@@ -165,7 +160,6 @@ class AdamReconstructor(Reconstructor):
             thread: bool = True,
             calculation_width: int = 10,
             shuffle: bool = True,
-            verbose: bool = False,
     ):
         """
         Runs a round of reconstruction using the Adam optimizer
@@ -195,6 +189,8 @@ class AdamReconstructor(Reconstructor):
             stable.
         betas : tuple
             Optional, the beta_1 and beta_2 to use. Default is (0.9, 0.999).
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
         schedule : bool
             Optional, create a learning rate scheduler
             (torch.optim.lr_scheduler._LRScheduler).
@@ -216,10 +212,6 @@ class AdamReconstructor(Reconstructor):
         shuffle : bool
             Optional, enable/disable shuffling of the dataset. This option
             is intended for diagnostic purposes and should be left as True.
-        lr_factors : dict
-            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
-        verbose : bool
-            Default False, whether to print out setup information about the planned run.
         """
 
         # The optimizer is created in self.__init__, but the
@@ -229,7 +221,6 @@ class AdamReconstructor(Reconstructor):
             betas=betas,
             amsgrad=amsgrad,
             lr_factors=lr_factors,
-            verbose=verbose,
         )
 
         # Update the training history
