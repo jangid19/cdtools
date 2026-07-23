@@ -22,7 +22,7 @@ identifiers:
     value: 'https://github.com/cdtools-developers/cdtools'
     description: Github Repository
 repository-code: 'https://github.com/cdtools-developers/cdtools'
-url: 'https://cdtools-developers.github.io/cdtools/'
+url: 'https://cdtools.readthedocs.io'
 abstract: >-
   CDTools is a python library for ptychography and CDI
   reconstructions, using an Automatic Differentiation based

@@ -24,7 +24,7 @@ classifiers = [
 	"Operating System :: OS Independent",
 	"License :: OSI Approved :: MIT License"
 ]
-urls = { "Homepage" = "https://github.com/cdtools-developers/cdtools", "Documentation" = "https://cdtools-developers.github.io/cdtools/" }
+urls = { "Homepage" = "https://github.com/cdtools-developers/cdtools", "Documentation" = "https://cdtools.readthedocs.io" }
 dependencies = [
 	"numpy>=1.0",
 	"scipy>=1.0",
