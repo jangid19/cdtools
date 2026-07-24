@@ -110,6 +110,18 @@ If :code:`propagation_distance` is set, it will assume a Fresnel scaling theorem
 Finally, note the addition of the :code:`panel_plot_mode=True` argument. This is the default mode, and returns the plots in a panel format, good for easily monitoring the progress of a reconstruction. If individual plots are needed for use in presentations, papers, or otherwise, setting :code:`panel_plot_mode=False` will plot each output in it's own window.
 
 
+Per-Parameter Learning Rates
+----------------------------
+
+This script shows how the learning rates can be adjusted per parameter, which can sometimes accelerate convergence substantially.
+
+.. literalinclude:: ../../examples/per_parameter_learning_rates.py
+
+The major addition is the inclusion of a dictionary, :code:`lr_factors`, which multiplies the main learning rate for each individual parameter. If a specific parameter is not being updated aggressively enough, increase this value from the default of 1. If it is being updated too aggressively and preventing convergence, lower the value.
+
+This dictionary will persist through all further :code:`recon.optimize()` calls, unles explicitly reset.
+
+
 Gold Ball Split
 ---------------
 

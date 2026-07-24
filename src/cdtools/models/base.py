@@ -405,6 +405,7 @@ class CDIModel(t.nn.Module):
             dataset: CDataset,
             batch_size: int = 15,
             lr: float = 0.005,
+            lr_factors: dict = {},
             betas: Tuple[float] = (0.9, 0.999),
             schedule: bool = False,
             amsgrad: bool = False,
@@ -434,6 +435,8 @@ class CDIModel(t.nn.Module):
             Optional, The learning rate (alpha) to use. Defaultis 0.005. 
             0.05 is typically the highest possible value with any chance 
             of being stable.
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
         betas : tuple(float)
             Optional, the beta_1 and beta_2 to use. Default is (0.9, 0.999).
         schedule : bool
@@ -458,6 +461,7 @@ class CDIModel(t.nn.Module):
             model=self,
             dataset=dataset,
             subset=subset,
+            lr_factors=lr_factors,
         )
         
         # Run some reconstructions
@@ -540,6 +544,7 @@ class CDIModel(t.nn.Module):
                      dataset: CDataset,
                      batch_size: int = None,
                      lr: float = 2e-7,
+                     lr_factors : dict = {},
                      momentum: float = 0,
                      dampening: float = 0,
                      weight_decay: float = 0,
@@ -565,6 +570,8 @@ class CDIModel(t.nn.Module):
             Optional, the size of the minibatches to use.
         lr : float
             Optional, the learning rate to use.
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
         momentum : float
             Optional, the length of the history to use.
         dampening : float
@@ -591,6 +598,7 @@ class CDIModel(t.nn.Module):
             model=self, 
             dataset=dataset, 
             subset=subset,
+            lr_factors=lr_factors,
         )
 
         # Run some reconstructions

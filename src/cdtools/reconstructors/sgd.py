@@ -34,23 +34,34 @@ class SGDReconstructor(Reconstructor):
         The dataset to reconstruct against.
     subset : list(int) or int
         Optional, a pattern index or list of pattern indices to use.
+    lr_factors : dict
+        Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
 
     Important attributes:
     - **model** -- Always points to the core model used.
     - **optimizer** -- This class by default uses `torch.optim.Adam` to perform
         optimizations.
+    - **lr_factors** -- A map from optimizer parameters to learning rate
+        factors.
     - **scheduler** -- A `torch.optim.lr_scheduler` that is defined during the
         `optimize` method.
     - **data_loader** -- A torch.utils.data.DataLoader that is defined by
         calling the `setup_dataloader` method.
     """
-    def __init__(self,
-                 model: CDIModel,
-                 dataset: Ptycho2DDataset,
-                 subset: List[int] = None):
+    def __init__(
+            self,
+            model: CDIModel,
+            dataset: Ptycho2DDataset,
+            subset: List[int] = None,
+            lr_factors: dict = {}
+    ):
 
         # Define the optimizer for use in this subclass
-        optimizer = t.optim.SGD(model.parameters())
+        param_groups = []
+        for name, param in model.named_parameters():
+            param_groups.append({'params':[param], 'name':name})
+
+        optimizer = t.optim.SGD(param_groups)
 
         super().__init__(
             model,
@@ -59,13 +70,54 @@ class SGDReconstructor(Reconstructor):
             subset=subset,
         )
 
+        self._set_lr_factors(lr_factors)
+
+
+    def _set_lr_factors(self, lr_factors):
+        """Sets the learning rate factors from a provided dictionary
+
+        This is broken out into it's own function to avoid replicating the
+        code to emit a warning, and to enable easy future changes as the logic
+        may need to become more complicated.
+
+        Parameters
+        ----------
+        lr_factors : dict
+            A dictionary mapping optimizer parameters to adjustment factors for the learning rate.
+        """
+        self.lr_factors = lr_factors
+        param_group_names = {p['name'] for p in self.optimizer.param_groups}
+        unused_lr_factors = self.lr_factors.keys() - param_group_names
         
-    def adjust_optimizer(self,
-                         lr: int = 0.005,
-                         momentum: float = 0,
-                         dampening: float = 0,
-                         weight_decay: float = 0,
-                         nesterov: bool = False):
+        if len(unused_lr_factors) != 0:
+            warnings.warn(
+                'The lr_factor dictionary defines some entries ' +
+                'which are unused. Check the following entries for typos:' +
+                str(unused_lr_factors),
+                stacklevel=3,
+            )
+            
+
+    def print_lrs(self):
+        """Prints the current per-parameter learning rates.
+        """
+
+        for param_group in self.optimizer.param_groups:
+            print(
+                f"Paramter {param_group['name']} has learning rate "
+                f"{param_group['lr']}."
+            )
+
+        
+    def adjust_optimizer(
+            self,
+            lr: int = 0.005,
+            momentum: float = 0,
+            dampening: float = 0,
+            weight_decay: float = 0,
+            nesterov: bool = False,
+            lr_factors: dict = None,
+    ):
         """
         Change hyperparameters for the utilized optimizer.
 
@@ -84,26 +136,48 @@ class SGDReconstructor(Reconstructor):
         nesterov : bool
             Optional, enables Nesterov momentum. Only applicable when momentum
             is non-zero.
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
+
         """
+
+        # Update the learning rate factors if explicitly given. Otherwise,
+        # persist the existing dictionary. A common pattern is to set the
+        # factors once at the start, and then adjust only the learning rate
+        # afterward.
+        if lr_factors is not None:
+            self._set_lr_factors(lr_factors)
+                    
+
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
             param_group['momentum'] = momentum
             param_group['dampening'] = dampening
             param_group['weight_decay'] = weight_decay
             param_group['nesterov'] = nesterov
 
-    def optimize(self,
-                 iterations: int,
-                 batch_size: int = 15,
-                 lr: float = 2e-7,
-                 momentum: float = 0,
-                 dampening: float = 0,
-                 weight_decay: float = 0,
-                 nesterov: bool = False,
-                 regularization_factor: Union[float, List[float]] = None,
-                 thread: bool = True,
-                 calculation_width: int = 10,
-                 shuffle: bool = True):
+            param_name = param_group['name']
+            if isinstance(self.lr_factors, dict) and \
+               param_name in self.lr_factors:
+                param_group['lr'] = lr * self.lr_factors[param_name]
+            else:
+                param_group['lr'] = lr
+
+
+    def optimize(
+            self,
+            iterations: int,
+            batch_size: int = 15,
+            lr: float = 2e-7,
+            momentum: float = 0,
+            dampening: float = 0,
+            weight_decay: float = 0,
+            nesterov: bool = False,
+            lr_factors : dict = None,
+            regularization_factor: Union[float, List[float]] = None,
+            thread: bool = True,
+            calculation_width: int = 10,
+            shuffle: bool = True,
+    ):
         """
         Runs a round of reconstruction using the Adam optimizer
 
@@ -131,6 +205,8 @@ class SGDReconstructor(Reconstructor):
         nesterov : bool
             Optional, enables Nesterov momentum. Only applicable when momentum
             is non-zero.
+        lr_factors : dict
+            Optional, a dictionary mapping optimizer parameters to adjustment factors for the learning rate.
         regularization_factor : float or list(float)
             Optional, if the model has a regularizer defined, the set of
             parameters to pass the regularizer method.
@@ -148,12 +224,27 @@ class SGDReconstructor(Reconstructor):
 
         # The optimizer is created in self.__init__, but the
         # hyperparameters need to be set up with self.adjust_optimizer
-        self.adjust_optimizer(lr=lr,
-                              momentum=momentum,
-                              dampening=dampening,
-                              weight_decay=weight_decay,
-                              nesterov=nesterov)
+        self.adjust_optimizer(
+            lr=lr,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+            lr_factors=lr_factors,
+        )
 
+        # Update the training history
+        self.model.training_history += (
+            f'Planning {iterations} epochs of SGD, with a learning rate = '
+            f'{lr}, batch size = {batch_size}, regularization_factor = '
+            f'{regularization_factor}, momentum history length = {momentum},'
+            f'momemntum dampening = {dampening}, weight_decay = {weight_decay},'
+            f' and nesterov = {nesterov}.\n'
+        )
+        self.model.training_history += (
+            f'The learning rate factors are {self.lr_factors}, default = 1.\n'
+        )
+        
         # Now, we run the optimize routine defined in the base class
         return super(SGDReconstructor, self).optimize(
             iterations,

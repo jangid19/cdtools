@@ -20,9 +20,10 @@ def test_Adam_gold_balls(gold_ball_cxi, reconstruction_device, show_plot):
         4) Reconstructions performed by `Adam.optimize` and
            `model.Adam_optimize` calls produce identical results when
            run over one round of optimization.
-        5) The quality of the reconstruction remains below a specified
+        5) Checks that the per-parameter learning rates work in both cases
+        6) The quality of the reconstruction remains below a specified
            threshold.
-        5) Ensure that the FancyPtycho model works fine and dandy with the
+        7) Ensure that the FancyPtycho model works fine and dandy with the
            Reconstructors.
     """
 
@@ -53,12 +54,20 @@ def test_Adam_gold_balls(gold_ball_cxi, reconstruction_device, show_plot):
     model_recon.to(device=reconstruction_device)
     dataset.get_as(device=reconstruction_device)
 
+    lr_factors = {
+        'obj' : 1.1,
+        'weights' : 0.5,
+    }
+    
     # ******* Reconstructions with AdamReconstructor.optimize *******
     print('Running reconstruction using AdamReconstructor.optimize' +
           ' on provided reconstruction_device,', reconstruction_device)
 
-    recon = cdtools.reconstructors.AdamReconstructor(model=model_recon,
-                                                     dataset=dataset)
+    recon = cdtools.reconstructors.AdamReconstructor(
+        model=model_recon,
+        dataset=dataset,
+        lr_factors=lr_factors,
+    )
     t.manual_seed(0)
 
     # Run a reconstruction
@@ -100,10 +109,13 @@ def test_Adam_gold_balls(gold_ball_cxi, reconstruction_device, show_plot):
 
     # We only need to test the first loop to ensure it's identical
     for i, iterations in enumerate(epoch_tup[:1]):
-        for loss in model.Adam_optimize(iterations,
-                                        dataset,
-                                        lr=lr_tup[i],
-                                        batch_size=batch_size_tup[i]):
+        for loss in model.Adam_optimize(
+                iterations,
+                dataset,
+                lr=lr_tup[i],
+                lr_factors=lr_factors,
+                batch_size=batch_size_tup[i],
+        ):
             print(model.report())
             if show_plot:
                 model.inspect(dataset, min_interval=10)
@@ -161,8 +173,16 @@ def test_intensity_MSE(gold_ball_cxi, reconstruction_device, show_plot):
     for loss in recon.optimize(5, lr=.05, batch_size=10):
         print(model.report())
 
-    # Threshold to be updated after running on a GPU machine
-    assert model.loss_history[-1] < 1e7
+    # Test that Adam optimizer post-creation update of lr_factors works
+    lr_factors = {
+        'background' : 0.3,
+        'translation_offsets': 1.2,
+    }
+    
+    for loss in recon.optimize(3, lr=.05, batch_size=10, lr_factors=lr_factors):
+        print(model.report())
+
+    assert model.loss_history[-1] < 6.5e6
 
 
 @pytest.mark.slow
@@ -371,3 +391,19 @@ def test_SGD_gold_balls(gold_ball_cxi, reconstruction_device, show_plot):
     # a threshold of 7.2e-4 for the tested loss. If this value has been
     # exceeded, the reconstructions have gotten worse.
     assert model.loss_history[-1] < 0.95
+
+    print('Testing per-parameter learning rates')
+
+    lr_factors = {
+        'background': 0.4,
+    }
+    
+    for loss in model.SGD_optimize(epochs,
+                                   dataset,
+                                   lr=lr,
+                                   lr_factors=lr_factors,
+                                   batch_size=batch_size):
+        print(model.report())
+        if show_plot:
+            model.inspect(dataset, min_interval=10)
+    
